@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chatbot/Paper air plane type</title>
+    <style>
+      body {
+        font-family: "Arial", sans-serif;
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+        background-color: #f0f0f0; /* Light gray background */
+      }
+
+      h1 {
+        text-align: center;
+        margin-top: 20px;
+        margin-bottom: 20px;
+        color: #333; /* Dark gray color */
+      }
+
+      .chat-content {
+        padding: 30px;
+        margin: 20px;
+        margin-bottom: 100px; /* Make space for the chatbox */
+        max-height: calc(100vh - 240px); /* Limit chat content height */
+        overflow-y: auto; /* Enable vertical scroll */
+        background-color: #fff; /* White background */
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+      }
+
+      .chatbox {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 90%;
+        max-width: 600px;
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+      }
+
+      .chatbox input[type="text"] {
+        flex: 1;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 16px;
+        outline: none;
+      }
+
+      .chatbox img {
+        width: 30px;
+        cursor: pointer;
+      }
+
+      .message,
+      .reply {
+        padding: 10px;
+        border-radius: 5px;
+        margin: 10px 0;
+      }
+
+      .message {
+        background-color: #e1e1e1;
+      }
+
+      .reply {
+        background-color: #d1d1ff;
+      }
+
+      .paper-airplane-clone {
+        position: absolute;
+        width: 20px;
+        height: auto;
+        z-index: 999; /* Ensure airplane stays above other content */
+      }
+      .settings {
+        position: fixed;
+        bottom: 10px;
+        left: 10px;
+        background-color: #fff;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        z-index: 1000; /* Ensure settings are above other content */
+        display: flex;
+        align-items: center;
+      }
+
+      .settings label {
+        margin-right: 10px;
+      }
+
+      .toggle {
+        position: relative;
+        display: inline-block;
+        width: 40px;
+        height: 20px;
+        background-color: #ccc;
+        border-radius: 20px;
+        transition: background-color 0.3s;
+        cursor: pointer;
+      }
+
+      .toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .toggle-slider {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        left: 2px;
+        width: 16px;
+        height: 16px;
+        background-color: #fff;
+        border-radius: 50%;
+        transition: transform 0.3s;
+      }
+
+      .toggle input:checked + .toggle-slider {
+        transform: translateX(20px);
+      }
+
+      /* New styles for chatbox toggle */
+      #chat-content {
+        display: block; /* Ensure chat content is always visible */
+      }
+
+      .hidden {
+        display: none; /* Hide chatbox when .hidden class is applied */
+      }
+    </style>
+  </head>
+  <body>
+    <h1 style="text-align: center">Paper-Airlines Chatbot</h1>
+    <div class="chat-content" id="chat-content">
+      <!-- Messages will be added here -->
+    </div>
+    <div class="chatbox">
+      <input
+        type="text"
+        id="userInput"
+        placeholder="Type your message here..."
+        oninput="startTyping()"
+      />
+      <img
+        src="paper-airplane-symbol.png"
+        alt="Send button"
+        id="sendButton"
+        onclick="sendMessage()"
+      />
+    </div>
+    <div class="settings">
+      <label for="toggleAnimation">Paper Airplane Animation:</label>
+      <label class="toggle">
+        <input
+          type="checkbox"
+          id="toggleAnimation"
+          onclick="toggleAnimation()"
+          checked
+        />
+        <span class="toggle-slider"></span>
+      </label>
+
+      <label for="toggleChatbox">Chatbox:</label>
+      <label class="toggle">
+        <input
+          type="checkbox"
+          id="toggleChatbox"
+          onclick="toggleChatbox()"
+          checked
+        />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <script>
+      // Global variables
+      var paperAirplanes = []; // Array to store cloned paper airplanes
+      var synonyms = {
+        hi: ["hello", "hey", "hi there", "howdy", "hiya"],
+        hello: ["hi", "hey", "hello there", "good day", "greetings"],
+        thanks: [
+          "thank you",
+          "thanks a lot",
+          "thanks so much",
+          "much appreciated",
+          "I'm grateful",
+        ],
+        goodbye: ["bye", "see you", "farewell", "take care", "later", "bye"],
+        why: [
+          "I have absolutely no idea",
+          "that's a mystery",
+          "beats me",
+          "I wish I knew",
+          "not sure",
+        ],
+        long: [
+          "ten hours on day one",
+          "a long time",
+          "quite a while",
+          "several hours",
+          "a lengthy period",
+        ],
+        morning: [
+          "good morning",
+          "morning!",
+          "top of the morning",
+          "rise and shine",
+          "morning, sunshine",
+        ],
+        afternoon: [
+          "good afternoon",
+          "afternoon!",
+          "good day",
+          "pleasant afternoon",
+          "afternoon greetings",
+        ],
+        evening: [
+          "good evening",
+          "evening!",
+          "pleasant evening",
+          "goodnight",
+          "night greetings",
+        ],
+        night: [
+          "good night",
+          "sweet dreams",
+          "night!",
+          "rest well",
+          "sleep tight",
+        ],
+        welcome: [
+          "you're welcome",
+          "no problem",
+          "my pleasure",
+          "anytime",
+          "glad to help",
+        ],
+        sorry: [
+          "I apologize",
+          "my apologies",
+          "I'm sorry",
+          "pardon me",
+          "forgive me",
+        ],
+        please: [
+          "if you please",
+          "kindly",
+          "please do",
+          "please go ahead",
+          "I request",
+        ],
+        congrats: [
+          "congratulations",
+          "well done",
+          "bravo",
+          "kudos",
+          "hats off",
+        ],
+        awesome: [
+          "that's awesome",
+          "amazing!",
+          "fantastic",
+          "wonderful",
+          "great job",
+        ],
+        cool: ["cool!", "nice", "sweet", "awesome", "impressive"],
+        yes: [
+          "yes indeed",
+          "absolutely",
+          "definitely",
+          "sure",
+          "certainly",
+          "yeah",
+        ],
+        no: ["nope", "not at all", "negative", "no way", "certainly not"],
+        maybe: ["maybe so", "possibly", "could be", "perhaps", "it's possible"],
+        sure: [
+          "sure thing",
+          "of course",
+          "absolutely",
+          "certainly",
+          "definitely",
+        ],
+        ok: [
+          "Perfect. Let me know if there is anything else I can help you with",
+        ],
+        fine: ["fine by me", "okay", "no problem", "alright", "sure"],
+        wow: ["wow!", "amazing!", "incredible", "unbelievable", "astonishing"],
+        great: [
+          "that's great",
+          "fantastic",
+          "excellent",
+          "wonderful",
+          "amazing",
+        ],
+        good: ["good job", "well done", "nice", "great", "excellent"],
+        bad: ["that's bad", "unfortunate", "good", "terrible", "awful"],
+        suck: ["are an abysmal"],
+        help: [
+          "I need help",
+          "assist me",
+          "help please",
+          "can you help?",
+          "help me",
+        ],
+        ready: ["I'm ready", "let's go", "all set", "prepared", "let's begin"],
+        wait: [
+          "please wait",
+          "hold on",
+          "just a moment",
+          "wait a second",
+          "hang on",
+        ],
+        done: ["all done", "finished", "completed", "that's it", "it's over"],
+        new: ["brand new", "fresh", "newly made", "recent", "latest"],
+        old: ["old news", "ancient", "aged", "vintage", "timeworn"],
+        quick: ["quickly", "fast", "rapid", "swift", "speedy"],
+        slow: ["slowly", "gradual", "leisurely", "unhurried", "sluggish"],
+        fast: ["very fast", "quick", "rapid", "swift", "speedy"],
+        hot: ["it's hot", "scorching", "boiling", "burning", "sweltering"],
+        cold: ["it's cold", "chilly", "freezing", "icy", "frosty"],
+        big: ["very big", "huge", "enormous", "gigantic", "massive"],
+        small: ["very small", "tiny", "minuscule", "little", "petite"],
+        tiny: ["so tiny", "minuscule", "microscopic", "little", "small"],
+        huge: ["it's huge", "gigantic", "enormous", "colossal", "massive"],
+        hungry: ["I'm hungry", "starving", "famished", "ravenous", "peckish"],
+        thirsty: [
+          "I'm thirsty",
+          "parched",
+          "dry",
+          "need a drink",
+          "dehydrated",
+        ],
+        tired: ["I'm tired", "exhausted", "worn out", "sleepy", "fatigued"],
+        sleepy: [
+          "I'm sleepy",
+          "drowsy",
+          "ready to sleep",
+          "tired",
+          "need rest",
+        ],
+        bored: [
+          "I'm bored",
+          "not entertained",
+          "disinterested",
+          "uninspired",
+          "dull",
+        ],
+        excited: ["I'm excited", "thrilled", "enthusiastic", "eager", "stoked"],
+        happy: ["I'm happy", "joyful", "pleased", "content", "glad"],
+        sad: ["I'm sad", "unhappy", "downcast", "depressed", "blue"],
+        angry: ["I'm angry", "mad", "irritated", "furious", "upset"],
+        love: ["I love it", "adore", "cherish", "enjoy", "like a lot"],
+        hate: ["I hate it", "despise", "dislike", "loathe", "can't stand"],
+        like: ["I like it", "enjoy", "appreciate", "am fond of", "prefer"],
+        dislike: [
+          "I dislike it",
+          "don't like",
+          "am not fond of",
+          "detest",
+          "hate",
+        ],
+        fun: ["that's fun", "enjoyable", "entertaining", "amusing", "exciting"],
+        work: [
+          "let's work",
+          "time to work",
+          "get to work",
+          "work together",
+          "do some work",
+        ],
+        play: [
+          "let's play",
+          "time to play",
+          "have fun",
+          "play together",
+          "enjoy",
+        ],
+        go: ["let's go", "move out", "proceed", "continue", "advance"],
+        stop: ["stop it", "halt", "cease", "end", "terminate"],
+        run: ["let's run", "go running", "run fast", "jog", "dash"],
+        walk: ["let's walk", "go walking", "stroll", "saunter", "walk around"],
+        jump: ["let's jump", "jump up", "leap", "bounce", "spring"],
+        swim: [
+          "let's swim",
+          "go swimming",
+          "dive in",
+          "swim around",
+          "take a dip",
+        ],
+        fly: ["let's fly", "take off", "soar", "glide", "travel by air"],
+        drive: ["let's drive", "go driving", "ride", "steer", "navigate"],
+        ride: ["let's ride", "go riding", "mount", "travel", "cruise"],
+        eat: ["let's eat", "have a meal", "dine", "snack", "consume food"],
+        drink: ["let's drink", "have a drink", "sip", "gulp", "quench thirst"],
+        sleep: ["let's sleep", "go to bed", "rest", "nap", "catch some Z's"],
+        shop: ["let's shop", "go shopping", "buy things", "purchase", "browse"],
+        buy: ["let's buy", "make a purchase", "get", "acquire", "obtain"],
+        sell: ["let's sell", "make a sale", "trade", "exchange", "deal"],
+        read: ["let's read", "go reading", "study", "peruse", "scan"],
+        write: ["let's write", "go writing", "compose", "scribe", "jot down"],
+        listen: ["let's listen", "pay attention", "hear", "tune in", "focus"],
+        watch: ["let's watch", "view", "observe", "see", "monitor"],
+        speak: ["let's speak", "talk", "converse", "chat", "communicate"],
+        talk: ["let's talk", "converse", "chat", "speak", "discuss"],
+        sing: ["let's sing", "perform", "chant", "vocalize", "croon"],
+        dance: ["let's dance", "move", "boogie", "jive", "groove"],
+        draw: ["let's draw", "sketch", "doodle", "illustrate", "depict"],
+        paint: ["let's paint", "color", "brush", "create art", "decorate"],
+        build: ["let's build", "construct", "assemble", "create", "develop"],
+        make: ["let's make", "create", "craft", "produce", "fabricate"],
+        create: ["let's create", "generate", "make", "build", "design"],
+        design: ["let's design", "plan", "sketch", "draft", "blueprint"],
+        code: [
+          "let's code",
+          "program",
+          "write code",
+          "develop software",
+          "script",
+        ],
+        program: [
+          "let's program",
+          "code",
+          "develop",
+          "script",
+          "create software",
+        ],
+        learn: [
+          "let's learn",
+          "study",
+          "gain knowledge",
+          "educate",
+          "discover",
+        ],
+        study: ["let's study", "review", "examine", "analyze", "learn"],
+        teach: ["let's teach", "educate", "instruct", "mentor", "train"],
+        train: ["let's train", "practice", "prepare", "coach", "drill"],
+        test: ["let's test", "evaluate", "assess", "examine", "try"],
+        develop: ["let's develop", "grow", "build", "create", "advance"],
+        plan: ["let's plan", "organize", "prepare", "schedule", "arrange"],
+        organize: [
+          "let's organize",
+          "arrange",
+          "sort",
+          "structure",
+          "systematize",
+        ],
+        manage: ["let's manage", "handle", "control", "direct", "lead"],
+        lead: ["let's lead", "guide", "direct", "head", "command"],
+        follow: ["let's follow", "pursue", "trail", "come after", "adhere"],
+        support: ["let's support", "back", "help", "assist", "aid"],
+        assist: ["let's assist", "help", "aid", "support", "lend a hand"],
+        collaborate: [
+          "let's collaborate",
+          "work together",
+          "team up",
+          "cooperate",
+          "partner",
+        ],
+        cooperate: [
+          "let's cooperate",
+          "work together",
+          "collaborate",
+          "assist",
+          "support",
+        ],
+        compete: ["let's compete", "contend", "vie", "rival", "challenge"],
+        win: ["let's win", "succeed", "triumph", "prevail", "achieve victory"],
+        lose: ["let's lose", "fail", "be defeated", "suffer defeat", "miss"],
+        think: ["let's think", "ponder", "consider", "reflect", "contemplate"],
+        analyze: ["let's analyze", "examine", "study", "inspect", "evaluate"],
+        solve: ["let's solve", "resolve", "fix", "work out", "figure out"],
+        decide: [
+          "let's decide",
+          "choose",
+          "determine",
+          "resolve",
+          "make a choice",
+        ],
+        choose: ["let's choose", "select", "pick", "opt", "decide"],
+        select: ["let's select", "choose", "pick", "opt for", "determine"],
+        prefer: ["let's prefer", "favor", "like", "choose", "select"],
+        enjoy: ["let's enjoy", "have fun", "like", "appreciate", "delight in"],
+        appreciate: [
+          "let's appreciate",
+          "value",
+          "cherish",
+          "enjoy",
+          "respect",
+        ],
+        celebrate: [
+          "let's celebrate",
+          "rejoice",
+          "commemorate",
+          "observe",
+          "party",
+        ],
+        relax: ["let's relax", "unwind", "rest", "take it easy", "chill"],
+        rest: ["let's rest", "relax", "repose", "take a break", "recover"],
+        meditate: [
+          "let's meditate",
+          "contemplate",
+          "reflect",
+          "ponder",
+          "pray",
+        ],
+        pray: ["let's pray", "meditate", "worship", "plead", "implore"],
+        wish: ["let's wish", "hope", "desire", "long for", "want"],
+        hope: ["let's hope", "wish", "desire", "aspire", "dream"],
+        dream: ["let's dream", "envision", "imagine", "fantasize", "aspire"],
+        imagine: ["let's imagine", "envision", "visualize", "dream", "think"],
+        wonder: ["let's wonder", "ponder", "marvel", "speculate", "think"],
+        explore: [
+          "let's explore",
+          "discover",
+          "investigate",
+          "search",
+          "delve",
+        ],
+        discover: ["let's discover", "find", "uncover", "reveal", "detect"],
+        invent: ["let's invent", "create", "design", "develop", "conceive"],
+        innovate: [
+          "let's innovate",
+          "create",
+          "invent",
+          "develop",
+          "modernize",
+        ],
+        change: ["let's change", "alter", "modify", "transform", "revise"],
+        improve: ["let's improve", "enhance", "better", "upgrade", "refine"],
+        grow: ["let's grow", "develop", "expand", "increase", "advance"],
+        achieve: ["let's achieve", "accomplish", "attain", "reach", "realize"],
+        succeed: ["let's succeed", "thrive", "prosper", "prevail", "flourish"],
+        excel: [
+          "let's excel",
+          "shine",
+          "stand out",
+          "be outstanding",
+          "surpass",
+        ],
+        perform: ["let's perform", "act", "do", "execute", "accomplish"],
+        act: ["let's act", "perform", "do", "behave", "play a role"],
+        show: ["let's show", "display", "exhibit", "reveal", "demonstrate"],
+        present: ["let's present", "introduce", "display", "show", "exhibit"],
+        demonstrate: [
+          "let's demonstrate",
+          "show",
+          "exhibit",
+          "illustrate",
+          "explain",
+        ],
+        explain: [
+          "let's explain",
+          "clarify",
+          "elucidate",
+          "describe",
+          "expound",
+        ],
+        describe: [
+          "let's describe",
+          "detail",
+          "explain",
+          "illustrate",
+          "outline",
+        ],
+        report: ["let's report", "document", "record", "inform", "notify"],
+        tell: ["let's tell", "inform", "narrate", "recount", "relate"],
+        inform: ["let's inform", "notify", "tell", "advise", "update"],
+        advise: ["let's advise", "recommend", "counsel", "suggest", "inform"],
+        warn: ["let's warn", "alert", "caution", "advise", "notify"],
+        remind: ["let's remind", "notify", "alert", "prompt", "refresh memory"],
+        note: ["let's note", "observe", "remark", "mention", "comment"],
+        mention: ["let's mention", "say", "remark", "state", "bring up"],
+        highlight: [
+          "let's highlight",
+          "emphasize",
+          "underline",
+          "stress",
+          "point out",
+        ],
+        emphasize: [
+          "let's emphasize",
+          "highlight",
+          "stress",
+          "underline",
+          "accentuate",
+        ],
+        stress: [
+          "let's stress",
+          "emphasize",
+          "highlight",
+          "underline",
+          "accentuate",
+        ],
+        reinforce: [
+          "let's reinforce",
+          "strengthen",
+          "support",
+          "bolster",
+          "underline",
+        ],
+        assure: ["let's assure", "guarantee", "confirm", "reassure", "affirm"],
+        confirm: ["let's confirm", "verify", "validate", "affirm", "endorse"],
+        verify: [
+          "let's verify",
+          "confirm",
+          "validate",
+          "check",
+          "authenticate",
+        ],
+        check: ["let's check", "verify", "examine", "inspect", "review"],
+        validate: [
+          "let's validate",
+          "confirm",
+          "verify",
+          "authenticate",
+          "approve",
+        ],
+        authenticate: [
+          "let's authenticate",
+          "verify",
+          "validate",
+          "confirm",
+          "prove",
+        ],
+        endorse: ["let's endorse", "support", "approve", "back", "advocate"],
+        back: ["let's back", "support", "endorse", "advocate", "promote"],
+        advocate: ["let's advocate", "support", "promote", "back", "endorse"],
+        defend: ["let's defend", "protect", "guard", "safeguard", "champion"],
+        protect: ["let's protect", "guard", "defend", "safeguard", "shield"],
+        guard: ["let's guard", "protect", "defend", "safeguard", "shield"],
+        secure: [
+          "let's secure",
+          "protect",
+          "safeguard",
+          "lock",
+          "ensure safety",
+        ],
+        save: ["let's save", "rescue", "preserve", "protect", "keep safe"],
+        rescue: ["let's rescue", "save", "free", "liberate", "recover"],
+        how: [
+          "If this is a question I would recommend you go to a great website called google.com",
+        ],
+        really: ["mhm"],
+        what: ["whatever you want it to be"],
+        idk: ["google.com has all the answers"],
+      };
+      var enableAnimation = true; // Animation toggle
+      var enableChatbox = true; // Chatbox toggle
+
+      // Add an event listener for the Enter key
+      document
+        .getElementById("userInput")
+        .addEventListener("keyup", function (event) {
+          if (event.key === "Enter") {
+            sendMessage();
+          }
+        });
+
+      // Function to handle the paper airplane animation
+      function startTyping() {
+        createPaperAirplane();
+        var paperAirplane = document.getElementById("sendButton");
+        var paperAirplaneClone = paperAirplane.cloneNode(true);
+        paperAirplaneClone.classList.add("paper-airplane-clone");
+        document.body.appendChild(paperAirplaneClone); // Append to the body instead of chatbox
+
+        // Animate the cloned paper airplane if animation is enabled
+        if (document.getElementById("toggleAnimation").checked) {
+          animatePaperAirplane(paperAirplaneClone);
+        }
+      }
+
+      function createPaperAirplane() {
+        if (!enableAnimation) return; // Exit if animation is disabled
+
+        var sendButton = document.getElementById("sendButton");
+        var airplane = document.createElement("img");
+        airplane.src = sendButton.src;
+        airplane.className = "paper-airplane-clone";
+        airplane.style.left = sendButton.getBoundingClientRect().left + "px";
+        airplane.style.top = sendButton.getBoundingClientRect().top + "px";
+        document.body.appendChild(airplane);
+
+        // Animate the airplane
+        setTimeout(function () {
+          airplane.style.transition = "transform 2s, opacity 2s";
+          airplane.style.transform = "translate(-50vw, -50vh) scale(0.5)";
+          airplane.style.opacity = "0";
+
+          setTimeout(function () {
+            document.body.removeChild(airplane);
+          }, 2000);
+        }, 0);
+      }
+
+      function animatePaperAirplane(paperAirplaneClone) {
+        var screenWidth = window.innerWidth;
+        var screenHeight = window.innerHeight;
+        var initialX = Math.random() * screenWidth;
+        var initialY = Math.random() * screenHeight;
+        var targetX = Math.random() * screenWidth;
+        var targetY = Math.random() * screenHeight;
+        var speed = 100; // Pixels per second
+        var distance = Math.sqrt(
+          Math.pow(targetX - initialX, 2) + Math.pow(targetY - initialY, 2)
+        );
+        var duration = (distance / speed) * 1000; // Calculate duration based on initial distance and speed
+        var angle =
+          Math.atan2(targetY - initialY, targetX - initialX) * (180 / Math.PI);
+
+        paperAirplaneClone.style.left = initialX + "px";
+        paperAirplaneClone.style.top = initialY + "px";
+        paperAirplaneClone.style.transform = "rotate(" + (angle + 60) + "deg)";
+
+        var startTime = Date.now(); // Record the start time
+
+        var interval = setInterval(function () {
+          var currentTime = Date.now();
+          var elapsedTime = currentTime - startTime;
+          var t = elapsedTime / duration; // Normalize time from 0 to 1
+
+          var x = initialX + (targetX - initialX) * t; // Calculate x position
+          var y = initialY + (targetY - initialY) * t; // Calculate y position
+
+          // Reverse x momentum if hitting left or right boundaries
+          if (x <= 0 || x >= screenWidth) {
+            targetX = initialX; // Reverse x momentum
+            initialX = x;
+          }
+
+          // Reverse y momentum if hitting top or bottom boundaries
+          if (y <= 0 || y >= screenHeight) {
+            targetY = initialY; // Reverse y momentum
+            initialY = y;
+          }
+
+          paperAirplaneClone.style.left = x + "px"; // Apply new x position
+          paperAirplaneClone.style.top = y + "px"; // Apply new y position
+
+          // Remove the cloned airplane once animation completes
+          if (t >= 1) {
+            clearInterval(interval); // Stop the interval
+            paperAirplaneClone.remove(); // Remove the cloned airplane from DOM
+          }
+        }, 16); // 60 frames per second
+      }
+
+      // Function to handle sending a message
+      function sendMessage() {
+        var userInput = document.getElementById("userInput");
+        var message = userInput.value.trim();
+
+        if (message !== "") {
+          addMessageToChat("message", message);
+          addReplyToChat(getReply(message));
+          userInput.value = "";
+          createPaperAirplane();
+        }
+      }
+
+      // Function to add a message to the chat
+      function addMessageToChat(className, text) {
+        if (!enableChatbox) return; // Exit if chatbox is disabled
+
+        var chatContent = document.getElementById("chat-content");
+        var messageElement = document.createElement("div");
+        messageElement.className = className;
+        messageElement.textContent = text;
+        chatContent.appendChild(messageElement);
+        chatContent.scrollTop = chatContent.scrollHeight;
+      }
+
+      // Function to add a reply to the chat
+      function addReplyToChat(text) {
+        setTimeout(function () {
+          addMessageToChat("reply", text);
+        }, 100);
+      }
+
+      // Function to get a reply based on the input
+      function getReply(message) {
+        var words = message.split(" ");
+        var reply = words
+          .map(function (word) {
+            var lowerCaseWord = word.toLowerCase();
+            return synonyms[lowerCaseWord]
+              ? getRandomSynonym(synonyms[lowerCaseWord])
+              : word;
+          })
+          .join(" ");
+
+        return reply;
+      }
+
+      // Function to get a random synonym from a list
+      function getRandomSynonym(synonymList) {
+        return synonymList[Math.floor(Math.random() * synonymList.length)];
+      }
+
+      // Function to toggle the paper airplane animation
+      function toggleAnimation() {
+        var toggleAnimationCheckbox =
+          document.getElementById("toggleAnimation");
+        enableAnimation = toggleAnimationCheckbox.checked;
+      }
+
+      // Function to toggle the chatbox
+      function toggleChatbox() {
+        var toggleChatboxCheckbox = document.getElementById("toggleChatbox");
+        enableChatbox = toggleChatboxCheckbox.checked;
+
+        var chatContent = document.getElementById("chat-content");
+        if (enableChatbox) {
+          chatContent.classList.remove("hidden");
+        } else {
+          chatContent.classList.add("hidden");
+        }
+      }
+    </script>
+  </body>
+</html>
